@@ -463,17 +463,6 @@ export class SceneModel  {
     }
 
     /**
-     * Gets if physically-based rendering (PBR) is enabled for this SceneModel.
-     *
-     * Only works when {@link Scene#pbrEnabled} is also true.
-     *
-     * @type {Boolean}
-     * @abstract
-     */
-    get pbrEnabled() {
-    }
-
-    /**
      * Gets if color textures are enabled for this SceneModel.
      *
      * Only works when {@link Scene#colorTextureEnabled} is also true.
@@ -784,20 +773,6 @@ export class SceneModel  {
      * @abstract
      */
     drawEdgesSelected(frameCtx) {
-    }
-
-    /**
-     * @private
-     * @abstract
-     */
-    drawOcclusion(frameCtx) {
-    }
-
-    /**
-     * @private
-     * @abstract
-     */
-    drawShadow(frameCtx) {
     }
 
     /** @private
