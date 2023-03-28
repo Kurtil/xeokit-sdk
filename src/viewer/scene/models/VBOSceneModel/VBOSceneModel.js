@@ -5,18 +5,12 @@ import {VBOSceneModelMesh} from './lib/VBOSceneModelMesh.js';
 import {VBOSceneModelNode} from './lib/VBOSceneModelNode.js';
 import {getScratchMemory, putScratchMemory} from "./lib/ScratchMemory.js";
 import {TrianglesBatchingLayer} from './lib/layers/trianglesBatching/TrianglesBatchingLayer.js';
-import {TrianglesInstancingLayer} from './lib/layers/trianglesInstancing/TrianglesInstancingLayer.js';
-import {LinesBatchingLayer} from './lib/layers/linesBatching/LinesBatchingLayer.js';
-import {LinesInstancingLayer} from './lib/layers/linesInstancing/LinesInstancingLayer.js';
-import {PointsBatchingLayer} from './lib/layers/pointsBatching/PointsBatchingLayer.js';
-import {PointsInstancingLayer} from './lib/layers/pointsInstancing/PointsInstancingLayer.js';
 import {ENTITY_FLAGS} from './lib/ENTITY_FLAGS.js';
 import {RenderFlags} from "../../webgl/RenderFlags.js";
 import {worldToRTCPositions} from "../../math/rtcCoords.js";
 import {VBOSceneModelTextureSet} from "./lib/VBOSceneModelTextureSet.js";
 import {VBOSceneModelGeometry} from "./lib/VBOSceneModelGeometry.js";
 import {VBOSceneModelTexture} from "./lib/VBOSceneModelTexture.js";
-import {SceneModel} from "../SceneModel.js";
 import {Texture2D} from "../../webgl/Texture2D.js";
 import {utils} from "../../utils.js";
 import {getKTX2TextureTranscoder} from "../../utils/textureTranscoders/KTX2TextureTranscoder/KTX2TextureTranscoder.js";
@@ -1091,7 +1085,6 @@ class VBOSceneModel extends Component {
      * @param {Number} [cfg.backfaces=false] When we set this ````true````, then we force rendering of backfaces for this VBOSceneModel. When
      * we leave this ````false````, then we allow the Viewer to decide when to render backfaces. In that case, the
      * Viewer will hide backfaces on watertight meshes, show backfaces on open meshes, and always show backfaces on meshes when we slice them open with {@link SectionPlane}s.
-     * @param {Boolean} [cfg.pbrEnabled=true] Indicates if physically-based rendering (PBR) will apply to the VBOSceneModel when {@link Scene#pbrEnabled} is ````true````.
      * @param {Boolean} [cfg.colorTextureEnabled=true] Indicates if base color textures will be rendered for the VBOSceneModel when {@link Scene#colorTextureEnabled} is ````true````.
      * @param {Number} [cfg.edgeThreshold=10] When xraying, highlighting, selecting or edging, this is the threshold angle between normals of adjacent triangles, below which their shared wireframe edge is not drawn.
      * @param {Number} [cfg.maxGeometryBatchSize=50000000] Maximum geometry batch size, as number of vertices. This is optionally supplied
@@ -1233,7 +1226,6 @@ class VBOSceneModel extends Component {
         this._opacity = 1.0;
         this._colorize = [1, 1, 1];
 
-        this._pbrEnabled = (cfg.pbrEnabled !== false);
         this._colorTextureEnabled = (cfg.colorTextureEnabled !== false);
 
         this._isModel = cfg.isModel;
@@ -1855,17 +1847,6 @@ class VBOSceneModel extends Component {
         for (let i = 0, len = this._nodeList.length; i < len; i++) {
             this._nodeList[i].opacity = opacity;
         }
-    }
-
-    /**
-     * Gets if physically-based rendering (PBR) is enabled for this VBOSceneModel.
-     *
-     * Only works when {@link Scene#pbrEnabled} is also true.
-     *
-     * @type {Boolean}
-     */
-    get pbrEnabled() {
-        return this._pbrEnabled;
     }
 
     /**
