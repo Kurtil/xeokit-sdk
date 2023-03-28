@@ -4,10 +4,7 @@ import {stats} from '../stats.js';
 import {WEBGL_INFO} from '../webglInfo.js';
 import {Map} from "../utils/Map.js";
 import {PickResult} from "./PickResult.js";
-import {OcclusionTester} from "./occlusion/OcclusionTester.js";
-import {SAOOcclusionRenderer} from "./sao/SAOOcclusionRenderer.js";
 import {createRTCViewMat} from "../math/rtcCoords.js";
-import {SAODepthLimitedBlurRenderer} from "./sao/SAODepthLimitedBlurRenderer.js";
 import {RenderBufferManager} from "./RenderBufferManager.js";
 import {getExtension} from "./getExtension.js";
 
@@ -36,7 +33,6 @@ const Renderer = function (scene, options) {
 
     let transparentEnabled = true;
     let edgesEnabled = true;
-    let saoEnabled = true;
     let pbrEnabled = true;
     let colorTextureEnabled = true;
 
@@ -46,11 +42,6 @@ const Renderer = function (scene, options) {
 
     const bindOutputFrameBuffer = null;
     const unbindOutputFrameBuffer = null;
-
-    const saoOcclusionRenderer = new SAOOcclusionRenderer(scene);
-    const saoDepthLimitedBlurRenderer = new SAODepthLimitedBlurRenderer(scene);
-
-    this._occlusionTester = null; // Lazy-created in #addMarker()
 
     this.capabilities = {
         astcSupported: !!getExtension(gl, 'WEBGL_compressed_texture_astc'),
@@ -68,11 +59,6 @@ const Renderer = function (scene, options) {
 
     this.setEdgesEnabled = function (enabled) {
         edgesEnabled = enabled;
-        imageDirty = true;
-    };
-
-    this.setSAOEnabled = function (enabled) {
-        saoEnabled = enabled;
         imageDirty = true;
     };
 
@@ -104,9 +90,6 @@ const Renderer = function (scene, options) {
     this.webglContextRestored = function (gl) {
 
         // renderBufferManager.webglContextRestored(gl);
-
-        saoOcclusionRenderer.init();
-        saoDepthLimitedBlurRenderer.init();
 
         imageDirty = true;
     };
@@ -289,185 +272,11 @@ const Renderer = function (scene, options) {
 
     function draw(params) {
 
-        const sao = scene.sao;
-
-        if (saoEnabled && sao.possible) {
-            drawSAOBuffers(params);
-        }
-
-        drawShadowMaps();
-
         drawColor(params);
-    }
-
-    function drawSAOBuffers(params) {
-
-        const sao = scene.sao;
-
-        // Render depth buffer
-
-        const saoDepthRenderBuffer = renderBufferManager.getRenderBuffer("saoDepth", {
-            depthTexture: true
-        });
-
-        saoDepthRenderBuffer.bind();
-        saoDepthRenderBuffer.clear();
-        drawDepth(params);
-        saoDepthRenderBuffer.unbind();
-
-        // Render occlusion buffer
-
-        const occlusionRenderBuffer1 = renderBufferManager.getRenderBuffer("saoOcclusion");
-
-        occlusionRenderBuffer1.bind();
-        occlusionRenderBuffer1.clear();
-        saoOcclusionRenderer.render(saoDepthRenderBuffer);
-        occlusionRenderBuffer1.unbind();
-
-        if (sao.blur) {
-
-            // Horizontally blur occlusion buffer 1 into occlusion buffer 2
-
-            const occlusionRenderBuffer2 = renderBufferManager.getRenderBuffer("saoOcclusion2");
-
-            occlusionRenderBuffer2.bind();
-            occlusionRenderBuffer2.clear();
-            saoDepthLimitedBlurRenderer.render(saoDepthRenderBuffer, occlusionRenderBuffer1, 0);
-            occlusionRenderBuffer2.unbind();
-
-            // Vertically blur occlusion buffer 2 back into occlusion buffer 1
-
-            occlusionRenderBuffer1.bind();
-            occlusionRenderBuffer1.clear();
-            saoDepthLimitedBlurRenderer.render(saoDepthRenderBuffer, occlusionRenderBuffer2, 1);
-            occlusionRenderBuffer1.unbind();
-        }
-    }
-
-    function drawDepth(params) {
-
-        frameCtx.reset();
-        frameCtx.pass = params.pass;
-
-        gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
-
-        gl.clearColor(0, 0, 0, 0);
-        gl.enable(gl.DEPTH_TEST);
-        gl.frontFace(gl.CCW);
-        gl.enable(gl.CULL_FACE);
-        gl.depthMask(true);
-
-        if (params.clear !== false) {
-            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-        }
-
-        for (let type in drawableTypeInfo) {
-            if (drawableTypeInfo.hasOwnProperty(type)) {
-
-                const drawableInfo = drawableTypeInfo[type];
-                const drawableList = drawableInfo.drawableList;
-
-                for (let i = 0, len = drawableList.length; i < len; i++) {
-
-                    const drawable = drawableList[i];
-
-                    if (drawable.culled === true || drawable.visible === false || !drawable.drawDepth) {
-                        continue;
-                    }
-
-                    if (drawable.renderFlags.colorOpaque) {
-                        drawable.drawDepth(frameCtx);
-                    }
-                }
-            }
-        }
-
-        // const numVertexAttribs = WEBGL_INFO.MAX_VERTEX_ATTRIBS; // Fixes https://github.com/xeokit/xeokit-sdk/issues/174
-        // for (let ii = 0; ii < numVertexAttribs; ii++) {
-        //     gl.disableVertexAttribArray(ii);
-        // }
-
-    }
-
-    function drawShadowMaps() {
-
-        let lights = scene._lightsState.lights;
-
-        for (let i = 0, len = lights.length; i < len; i++) {
-            const light = lights[i];
-            if (!light.castsShadow) {
-                continue;
-            }
-            drawShadowMap(light);
-        }
-
-        // const numVertexAttribs = WEBGL_INFO.MAX_VERTEX_ATTRIBS; // Fixes https://github.com/xeokit/xeokit-sdk/issues/174
-        // for (let ii = 0; ii < numVertexAttribs; ii++) {
-        //     gl.disableVertexAttribArray(ii);
-        // }
-        //
-        shadowsDirty = false;
-    }
-
-    function drawShadowMap(light) {
-
-        const castsShadow = light.castsShadow;
-
-        if (!castsShadow) {
-            return;
-        }
-
-        const shadowRenderBuf = light.getShadowRenderBuf();
-
-        if (!shadowRenderBuf) {
-            return;
-        }
-
-        shadowRenderBuf.bind();
-
-        frameCtx.reset();
-
-        frameCtx.backfaces = true;
-        frameCtx.frontface = true;
-        frameCtx.shadowViewMatrix = light.getShadowViewMatrix();
-        frameCtx.shadowProjMatrix = light.getShadowProjMatrix();
-
-        gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
-
-        gl.clearColor(0, 0, 0, 1);
-        gl.enable(gl.DEPTH_TEST);
-        gl.disable(gl.BLEND);
-
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-        for (let type in drawableTypeInfo) {
-
-            if (drawableTypeInfo.hasOwnProperty(type)) {
-
-                const drawableInfo = drawableTypeInfo[type];
-                const drawableList = drawableInfo.drawableList;
-
-                for (let i = 0, len = drawableList.length; i < len; i++) {
-
-                    const drawable = drawableList[i];
-
-                    if (drawable.visible === false || !drawable.castsShadow || !drawable.drawShadow) {
-                        continue;
-                    }
-
-                    if (drawable.renderFlags.colorOpaque) { // Transparent objects don't cast shadows (yet)
-                        drawable.drawShadow(frameCtx);
-                    }
-                }
-            }
-        }
-
-        shadowRenderBuf.unbind();
     }
 
     const drawColor = (function () { // Draws the drawables in drawableListSorted
 
-        const normalDrawSAOBin = [];
         const normalEdgesOpaqueBin = [];
         const normalFillTransparentBin = [];
         const normalEdgesTransparentBin = [];
@@ -493,7 +302,6 @@ const Renderer = function (scene, options) {
 
             frameCtx.reset();
             frameCtx.pass = params.pass;
-            frameCtx.withSAO = false;
             frameCtx.pbrEnabled = pbrEnabled && !!scene.pbrEnabled;
             frameCtx.colorTextureEnabled = colorTextureEnabled && !!scene.colorTextureEnabled;
 
@@ -513,16 +321,8 @@ const Renderer = function (scene, options) {
             gl.lineWidth(1);
 
             frameCtx.lineWidth = 1;
-
-            const saoPossible = scene.sao.possible;
-
-            if (saoEnabled && saoPossible) {
-                const occlusionRenderBuffer1 = renderBufferManager.getRenderBuffer("saoOcclusion");
-                frameCtx.occlusionTexture = occlusionRenderBuffer1 ? occlusionRenderBuffer1.getTexture() : null;
-            } else {
-                frameCtx.occlusionTexture = null;
-
-            }
+                
+            frameCtx.occlusionTexture = null;
 
             let i;
             let len;
@@ -538,7 +338,6 @@ const Renderer = function (scene, options) {
                 gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
             }
 
-            let normalDrawSAOBinLen = 0;
             let normalEdgesOpaqueBinLen = 0;
             let normalFillTransparentBinLen = 0;
             let normalEdgesTransparentBinLen = 0;
@@ -579,11 +378,7 @@ const Renderer = function (scene, options) {
                         const renderFlags = drawable.renderFlags;
 
                         if (renderFlags.colorOpaque) {
-                            if (saoEnabled && saoPossible && drawable.saoEnabled) {
-                                normalDrawSAOBin[normalDrawSAOBinLen++] = drawable;
-                            } else {
-                                drawable.drawColorOpaque(frameCtx);
-                            }
+                            drawable.drawColorOpaque(frameCtx);
                         }
 
                         if (transparentEnabled) {
@@ -655,15 +450,6 @@ const Renderer = function (scene, options) {
             //------------------------------------------------------------------------------------------------------
             // Render deferred bins
             //------------------------------------------------------------------------------------------------------
-
-            // Opaque color with SAO
-
-            if (normalDrawSAOBinLen > 0) {
-                frameCtx.withSAO = true;
-                for (i = 0; i < normalDrawSAOBinLen; i++) {
-                    normalDrawSAOBin[i].drawColorOpaque(frameCtx);
-                }
-            }
 
             // Opaque edges
 
@@ -1264,76 +1050,6 @@ const Renderer = function (scene, options) {
     }
 
     /**
-     * Adds a {@link Marker} for occlusion testing.
-     * @param marker
-     */
-    this.addMarker = function (marker) {
-        this._occlusionTester = this._occlusionTester || new OcclusionTester(scene, renderBufferManager);
-        this._occlusionTester.addMarker(marker);
-        scene.occlusionTestCountdown = 0;
-    };
-
-    /**
-     * Notifies that a {@link Marker#worldPos} has updated.
-     * @param marker
-     */
-    this.markerWorldPosUpdated = function (marker) {
-        this._occlusionTester.markerWorldPosUpdated(marker);
-    };
-
-    /**
-     * Removes a {@link Marker} from occlusion testing.
-     * @param marker
-     */
-    this.removeMarker = function (marker) {
-        this._occlusionTester.removeMarker(marker);
-    };
-
-    /**
-     * Performs an occlusion test for all added {@link Marker}s, updating
-     * their {@link Marker#visible} properties accordingly.
-     */
-    this.doOcclusionTest = function () {
-
-        if (this._occlusionTester && this._occlusionTester.needOcclusionTest) {
-
-            updateDrawlist();
-
-            this._occlusionTester.bindRenderBuf();
-
-            frameCtx.reset();
-            frameCtx.backfaces = true;
-            frameCtx.frontface = true; // "ccw"
-
-            gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
-            gl.clearColor(0, 0, 0, 0);
-            gl.enable(gl.DEPTH_TEST);
-            gl.disable(gl.CULL_FACE);
-            gl.disable(gl.BLEND);
-            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-            for (let type in drawableTypeInfo) {
-                if (drawableTypeInfo.hasOwnProperty(type)) {
-                    const drawableInfo = drawableTypeInfo[type];
-                    const drawableList = drawableInfo.drawableList;
-                    for (let i = 0, len = drawableList.length; i < len; i++) {
-                        const drawable = drawableList[i];
-                        if (!drawable.drawOcclusion || drawable.culled === true || drawable.visible === false || drawable.pickable === false) { // TODO: Option to exclude transparent?
-                            continue;
-                        }
-
-                        drawable.drawOcclusion(frameCtx);
-                    }
-                }
-            }
-
-            this._occlusionTester.drawMarkers(frameCtx);
-            this._occlusionTester.doOcclusionTest(); // Updates Marker "visible" properties
-            this._occlusionTester.unbindRenderBuf();
-        }
-    };
-
-    /**
      * Read pixels from the renderer's current output. Performs a force-render first.
      * @param pixels
      * @param colors
@@ -1426,13 +1142,6 @@ const Renderer = function (scene, options) {
         drawables = {};
 
         renderBufferManager.destroy();
-
-        saoOcclusionRenderer.destroy();
-        saoDepthLimitedBlurRenderer.destroy();
-
-        if (this._occlusionTester) {
-            this._occlusionTester.destroy();
-        }
     };
 };
 

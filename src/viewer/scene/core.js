@@ -54,10 +54,8 @@ function Core() {
             scene.id = sceneIDMap.addItem({});
         }
         core.scenes[scene.id] = scene;
-        const ticksPerOcclusionTest = scene.ticksPerOcclusionTest;
         const ticksPerRender = scene.ticksPerRender;
         scenesRenderInfo[scene.id] = {
-            ticksPerOcclusionTest: ticksPerOcclusionTest,
             ticksPerRender: ticksPerRender,
             renderCountdown: ticksPerRender
         };
@@ -192,7 +190,6 @@ function renderScenes() {
     const forceRender = false;
     let scene;
     let renderInfo;
-    let ticksPerOcclusionTest;
     let ticksPerRender;
     let id;
     for (id in scenes) {
@@ -203,16 +200,6 @@ function renderScenes() {
 
             if (!renderInfo) {
                 renderInfo = scenesRenderInfo[id] = {}; // FIXME
-            }
-
-            ticksPerOcclusionTest = scene.ticksPerOcclusionTest;
-            if (renderInfo.ticksPerOcclusionTest !== ticksPerOcclusionTest) {
-                renderInfo.ticksPerOcclusionTest = ticksPerOcclusionTest;
-                renderInfo.renderCountdown = ticksPerOcclusionTest;
-            }
-            if (--scene.occlusionTestCountdown <= 0) {
-                scene.doOcclusionTest();
-                scene.occlusionTestCountdown = ticksPerOcclusionTest;
             }
 
             ticksPerRender = scene.ticksPerRender;

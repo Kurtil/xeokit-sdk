@@ -2,7 +2,6 @@ import {Scene} from "./scene/scene/Scene.js";
 import {CameraFlightAnimation} from "./scene/camera/CameraFlightAnimation.js";
 import {CameraControl} from "./scene/CameraControl/CameraControl.js";
 import {MetaScene} from "./metadata/MetaScene.js";
-import {LocaleService} from "./localization/LocaleService.js";
 
 /**
  * The 3D Viewer at the heart of the xeokit SDK.
@@ -40,7 +39,6 @@ class Viewer {
      * @param {String} [cfg.units="meters"] The measurement unit type. Accepted values are ````"meters"````, ````"metres"````, , ````"centimeters"````, ````"centimetres"````, ````"millimeters"````,  ````"millimetres"````, ````"yards"````, ````"feet"```` and ````"inches"````.
      * @param {Number} [cfg.scale=1] The number of Real-space units in each World-space coordinate system unit.
      * @param {Number[]} [cfg.origin=[0,0,0]] The Real-space 3D origin, in current measurement units, at which the World-space coordinate origin ````[0,0,0]```` sits.
-     * @param {Boolean} [cfg.saoEnabled=false] Whether to enable Scalable Ambient Obscurance (SAO) effect. See {@link SAO} for more info.
      * @param {Boolean} [cfg.antialias=true] Whether to enable anti-aliasing.
      * @throws {String} Throws an exception when both canvasId or canvasElement are missing or they aren't pointing to a valid HTMLCanvasElement.
      * @param {Boolean} [cfg.alphaDepthMask=true] Whether writing into the depth buffer is enabled or disabled when rendering transparent objects.
@@ -51,32 +49,8 @@ class Viewer {
      * that it does not clip huge models.
      * @param {Boolean} [cfg.colorTextureEnabled=true] Whether to enable base color texture rendering.
      * @param {Boolean} [cfg.pbrEnabled=false] Whether to enable physically-based rendering.
-     * @param {LocaleService} [cfg.localeService=null] Optional locale-based translation service.
      */
     constructor(cfg) {
-
-        /**
-         * The Viewer's current language setting.
-         * @property language
-         * @deprecated
-         * @type {String}
-         */
-        this.language = "en";
-
-        /**
-         * The viewer's locale service.
-         *
-         * This is configured via the Viewer's constructor.
-         *
-         * By default, this service will be an instance of {@link LocaleService}, which will just return
-         * null translations for all given strings and phrases.
-         *
-         * @property localeService
-         * @type {LocaleService}
-         * @since 2.0
-         */
-        this.localeService = cfg.localeService || new LocaleService();
-
         /**
          * The Viewer's {@link Scene}.
          * @property scene
@@ -102,7 +76,6 @@ class Viewer {
             units: cfg.units,
             scale: cfg.scale,
             origin: cfg.origin,
-            saoEnabled: cfg.saoEnabled,
             alphaDepthMask: (cfg.alphaDepthMask !== false),
             entityOffsetsEnabled: (!!cfg.entityOffsetsEnabled),
             pickSurfacePrecisionEnabled: (!!cfg.pickSurfacePrecisionEnabled),

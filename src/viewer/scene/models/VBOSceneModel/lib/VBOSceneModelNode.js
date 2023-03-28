@@ -591,54 +591,6 @@ class VBOSceneModelNode {
         this.model.glRedraw();
     }
 
-    /**
-     * Gets if this VBOSceneModelNode casts shadows.
-     *
-     * @type {Boolean}
-     */
-    get castsShadow() { // TODO
-        return false;
-    }
-
-    /**
-     * Sets if to this VBOSceneModelNode casts shadows.
-     *
-     * @type {Boolean}
-     */
-    set castsShadow(pickable) { // TODO
-
-    }
-
-    /**
-     * Whether or not this VBOSceneModelNode can have shadows cast upon it
-     *
-     * @type {Boolean}
-     */
-    get receivesShadow() { // TODO
-        return false;
-    }
-
-    /**
-     * Whether or not this VBOSceneModelNode can have shadows cast upon it
-     *
-     * @type {Boolean}
-     */
-    set receivesShadow(pickable) { // TODO
-
-    }
-
-    /**
-     * Gets if Scalable Ambient Obscurance (SAO) will apply to this VBOSceneModelNode.
-     *
-     * SAO is configured by the Scene's {@link SAO} component.
-     *
-     * @type {Boolean}
-     * @abstract
-     */
-    get saoEnabled() {
-        return this.model.saoEnabled;
-    }
-
     _getFlag(flag) {
         return !!(this._flags & flag);
     }

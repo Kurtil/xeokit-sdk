@@ -557,14 +557,6 @@ class LinesInstancingLayer {
         }
     }
 
-    // ---------------------- RENDERING SAO POST EFFECT TARGETS --------------
-
-    drawDepth(renderFlags, frameCtx) {
-    }
-
-    drawNormals(renderFlags, frameCtx) {
-    }
-
     // ---------------------- EMPHASIS RENDERING -----------------------------------
 
     drawSilhouetteXRayed(renderFlags, frameCtx) {

@@ -15,7 +15,6 @@ import {PhongMaterial} from '../materials/PhongMaterial.js';
 import {EmphasisMaterial} from '../materials/EmphasisMaterial.js';
 import {EdgeMaterial} from '../materials/EdgeMaterial.js';
 import {Metrics} from "../metriqs/Metriqs.js";
-import {SAO} from "../postfx/SAO.js";
 import {PointsMaterial} from "../materials/PointsMaterial.js";
 import {LinesMaterial} from "../materials/LinesMaterial.js";
 
@@ -362,12 +361,6 @@ class Scene extends Component {
          * @type {Viewer}
          */
         this.viewer = viewer;
-
-        /** Decremented each frame, triggers occlusion test for occludable {@link Marker}s when zero.
-         * @private
-         * @type {number}
-         */
-        this.occlusionTestCountdown = 0;
 
         /**
          The number of models currently loading.
@@ -803,16 +796,7 @@ class Scene extends Component {
             origin: cfg.origin
         });
 
-        /** Configures Scalable Ambient Obscurance (SAO) for this Scene.
-         * @type {SAO}
-         * @final
-         */
-        this.sao = new SAO(this, {
-            enabled: cfg.saoEnabled
-        });
-
         this.ticksPerRender = cfg.ticksPerRender;
-        this.ticksPerOcclusionTest = cfg.ticksPerOcclusionTest;
         this.passes = cfg.passes;
         this.clearEachPass = cfg.clearEachPass;
         this.gammaInput = cfg.gammaInput;
@@ -1284,20 +1268,6 @@ class Scene extends Component {
     }
 
     /**
-     * Performs an occlusion test on all {@link Marker}s in this {@link Scene}.
-     *
-     * Sets each {@link Marker#visible} ````true```` if the Marker is currently not occluded by any opaque {@link Entity}s
-     * in the Scene, or ````false```` if an Entity is occluding it.
-     */
-    doOcclusionTest() {
-        if (this._needRecompile) {
-            this._recompile();
-            this._needRecompile = false;
-        }
-        this._renderer.doOcclusionTest();
-    }
-
-    /**
      * Renders a single frame of this Scene.
      *
      * The Scene will periodically render itself after any updates, but you can call this method to force a render
@@ -1586,38 +1556,6 @@ class Scene extends Component {
      */
     get ticksPerRender() {
         return this._ticksPerRender;
-    }
-
-    /**
-     * Sets the number of "ticks" that happen between occlusion testing for {@link Marker}s.
-     *
-     * Default value is ````20````.
-     *
-     * @type {Number}
-     */
-    set ticksPerOcclusionTest(value) {
-        if (value === undefined || value === null) {
-            value = 20;
-        } else if (!utils.isNumeric(value) || value <= 0) {
-            this.error("Unsupported value for 'ticksPerOcclusionTest': '" + value +
-                "' - should be an integer greater than zero.");
-            value = 20;
-        }
-        if (value === this._ticksPerOcclusionTest) {
-            return;
-        }
-        this._ticksPerOcclusionTest = value;
-    }
-
-    /**
-     * Gets the number of "ticks" that happen between each render of this Scene.
-     *
-     * Default value is ````1````.
-     *
-     * @type {Number}
-     */
-    get ticksPerOcclusionTest() {
-        return this._ticksPerOcclusionTest;
     }
 
     /**

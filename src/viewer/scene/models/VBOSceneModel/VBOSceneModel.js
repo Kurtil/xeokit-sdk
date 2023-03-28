@@ -1091,7 +1091,6 @@ class VBOSceneModel extends Component {
      * @param {Number} [cfg.backfaces=false] When we set this ````true````, then we force rendering of backfaces for this VBOSceneModel. When
      * we leave this ````false````, then we allow the Viewer to decide when to render backfaces. In that case, the
      * Viewer will hide backfaces on watertight meshes, show backfaces on open meshes, and always show backfaces on meshes when we slice them open with {@link SectionPlane}s.
-     * @param {Boolean} [cfg.saoEnabled=true] Indicates if Scalable Ambient Obscurance (SAO) will apply to this VBOSceneModel. SAO is configured by the Scene's {@link SAO} component.
      * @param {Boolean} [cfg.pbrEnabled=true] Indicates if physically-based rendering (PBR) will apply to the VBOSceneModel when {@link Scene#pbrEnabled} is ````true````.
      * @param {Boolean} [cfg.colorTextureEnabled=true] Indicates if base color textures will be rendered for the VBOSceneModel when {@link Scene#colorTextureEnabled} is ````true````.
      * @param {Number} [cfg.edgeThreshold=10] When xraying, highlighting, selecting or edging, this is the threshold angle between normals of adjacent triangles, below which their shared wireframe edge is not drawn.
@@ -1234,7 +1233,6 @@ class VBOSceneModel extends Component {
         this._opacity = 1.0;
         this._colorize = [1, 1, 1];
 
-        this._saoEnabled = (cfg.saoEnabled !== false);
         this._pbrEnabled = (cfg.pbrEnabled !== false);
         this._colorTextureEnabled = (cfg.colorTextureEnabled !== false);
 
@@ -1857,63 +1855,6 @@ class VBOSceneModel extends Component {
         for (let i = 0, len = this._nodeList.length; i < len; i++) {
             this._nodeList[i].opacity = opacity;
         }
-    }
-
-    /**
-     * Gets if this VBOSceneModel casts a shadow.
-     *
-     * @type {Boolean}
-     */
-    get castsShadow() {
-        return this._castsShadow;
-    }
-
-    /**
-     * Sets if this VBOSceneModel casts a shadow.
-     *
-     * @type {Boolean}
-     */
-    set castsShadow(castsShadow) {
-        castsShadow = (castsShadow !== false);
-        if (castsShadow !== this._castsShadow) {
-            this._castsShadow = castsShadow;
-            this.glRedraw();
-        }
-    }
-
-    /**
-     * Sets if this VBOSceneModel can have shadow cast upon it.
-     *
-     * @type {Boolean}
-     */
-    get receivesShadow() {
-        return this._receivesShadow;
-    }
-
-    /**
-     * Sets if this VBOSceneModel can have shadow cast upon it.
-     *
-     * @type {Boolean}
-     */
-    set receivesShadow(receivesShadow) {
-        receivesShadow = (receivesShadow !== false);
-        if (receivesShadow !== this._receivesShadow) {
-            this._receivesShadow = receivesShadow;
-            this.glRedraw();
-        }
-    }
-
-    /**
-     * Gets if Scalable Ambient Obscurance (SAO) will apply to this VBOSceneModel.
-     *
-     * SAO is configured by the Scene's {@link SAO} component.
-     *
-     *  Only works when {@link SAO#enabled} is also true.
-     *
-     * @type {Boolean}
-     */
-    get saoEnabled() {
-        return this._saoEnabled;
     }
 
     /**
@@ -3116,24 +3057,6 @@ ${cfg.uv && cfg.uv.length > 0 ? 1 : 0}-${cfg.uvCompressed && cfg.uvCompressed.le
         for (let i = 0, len = renderFlags.visibleLayers.length; i < len; i++) {
             const layerIndex = renderFlags.visibleLayers[i];
             this._layerList[layerIndex].drawColorTransparent(renderFlags, frameCtx);
-        }
-    }
-
-    /** @private */
-    drawDepth(frameCtx) { // Dedicated to SAO because it skips transparent objects
-        const renderFlags = this.renderFlags;
-        for (let i = 0, len = renderFlags.visibleLayers.length; i < len; i++) {
-            const layerIndex = renderFlags.visibleLayers[i];
-            this._layerList[layerIndex].drawDepth(renderFlags, frameCtx);
-        }
-    }
-
-    /** @private */
-    drawNormals(frameCtx) { // Dedicated to SAO because it skips transparent objects
-        const renderFlags = this.renderFlags;
-        for (let i = 0, len = renderFlags.visibleLayers.length; i < len; i++) {
-            const layerIndex = renderFlags.visibleLayers[i];
-            this._layerList[layerIndex].drawNormals(renderFlags, frameCtx);
         }
     }
 

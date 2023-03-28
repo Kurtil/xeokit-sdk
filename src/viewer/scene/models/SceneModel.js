@@ -463,55 +463,6 @@ export class SceneModel  {
     }
 
     /**
-     * Gets if this SceneModel casts a shadow.
-     *
-     * @type {Boolean}
-     * @abstract
-     */
-    get castsShadow() {
-    }
-
-    /**
-     * Sets if this SceneModel casts a shadow.
-     *
-     * @type {Boolean}
-     * @abstract
-     */
-    set castsShadow(castsShadow) {
-    }
-
-    /**
-     * Sets if this SceneModel can have shadow cast upon it.
-     *
-     * @type {Boolean}
-     * @abstract
-     */
-    get receivesShadow() {
-    }
-
-    /**
-     * Sets if this SceneModel can have shadow cast upon it.
-     *
-     * @type {Boolean}
-     * @abstract
-     */
-    set receivesShadow(receivesShadow) {
-    }
-
-    /**
-     * Gets if Scalable Ambient Obscurance (SAO) will apply to this SceneModel.
-     *
-     * SAO is configured by the Scene's {@link SAO} component.
-     *
-     *  Only works when {@link SAO#enabled} is also true.
-     *
-     * @type {Boolean}
-     * @abstract
-     */
-    get saoEnabled() {
-    }
-
-    /**
      * Gets if physically-based rendering (PBR) is enabled for this SceneModel.
      *
      * Only works when {@link Scene#pbrEnabled} is also true.

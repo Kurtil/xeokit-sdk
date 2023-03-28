@@ -402,58 +402,6 @@ class Entity {
     }
 
     /**
-     * Sets if this Entity casts shadows.
-     *
-     * @type {Boolean}
-     * @abstract
-     */
-    set castsShadow(pickable) {
-
-    }
-
-    /**
-     * Gets if this Entity casts shadows.
-     *
-     * @type {Boolean}
-     * @abstract
-     */
-    get castsShadow() {
-
-    }
-
-    /**
-     * Sets if to this Entity can have shadows cast upon it
-     *
-     * @type {Boolean}
-     * @abstract
-     */
-    set receivesShadow(pickable) {
-
-    }
-
-    /**
-     * Gets if this Entity can have shadows cast upon it
-     *
-     * @type {Boolean}
-     * @abstract
-     */
-    get receivesShadow() {
-
-    }
-
-    /**
-     * Gets if this Entity can have Scalable Ambient Obscurance (SAO) applied to it.
-     *
-     * SAO is configured by {@link SAO}.
-     *
-     * @type {Boolean}
-     * @abstract
-     */
-    get saoEnabled() {
-
-    }
-
-    /**
      * Sets the Entity's 3D World-space offset.
      *
      * Since offsetting Entities comes with memory and rendering overhead on some systems, this feature
