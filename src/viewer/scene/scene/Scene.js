@@ -9,14 +9,10 @@ import {Viewport} from '../viewport/Viewport.js';
 import {Camera} from '../camera/Camera.js';
 import {DirLight} from '../lights/DirLight.js';
 import {AmbientLight} from '../lights/AmbientLight.js';
-import {ReadableGeometry} from "../geometry/ReadableGeometry.js";
-import {buildBoxGeometry} from '../geometry/builders/buildBoxGeometry.js';
 import {PhongMaterial} from '../materials/PhongMaterial.js';
 import {EmphasisMaterial} from '../materials/EmphasisMaterial.js';
 import {EdgeMaterial} from '../materials/EdgeMaterial.js';
 import {Metrics} from "../metriqs/Metriqs.js";
-import {PointsMaterial} from "../materials/PointsMaterial.js";
-import {LinesMaterial} from "../materials/LinesMaterial.js";
 
 // Enables runtime check for redundant calls to object state update methods, eg. Scene#_objectVisibilityUpdated
 const ASSERT_OBJECT_STATE_UPDATE = false;
@@ -1175,22 +1171,6 @@ class Scene extends Component {
      */
     get gammaFactor() {
         return this._renderer.gammaFactor;
-    }
-
-    /**
-     * Gets the default {@link Geometry} for this Scene, which is a {@link ReadableGeometry} with a unit-sized box shape.
-     *
-     * Has {@link ReadableGeometry#id} set to "default.geometry".
-     *
-     * {@link Mesh}s in this Scene have {@link Mesh#geometry} set to this {@link ReadableGeometry} by default.
-     *
-     * @type {ReadableGeometry}
-     */
-    get geometry() {
-        return this.components["default.geometry"] || buildBoxGeometry(ReadableGeometry, this, {
-            id: "default.geometry",
-            dontClear: true
-        });
     }
 
     /**
