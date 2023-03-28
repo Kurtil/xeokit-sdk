@@ -20,7 +20,7 @@ class TrianglesBatchingSilhouetteRenderer {
     }
 
     _getHash() {
-        return ""; // was section plan get hash
+        return "";
     }
 
     drawLayer(frameCtx, batchingLayer, renderPass) {
@@ -136,55 +136,63 @@ class TrianglesBatchingSilhouetteRenderer {
 
     _buildVertexShader() {
         const src = [];
-        src.push("#version 300 es");
-        src.push("// Triangles batching silhouette vertex shader");
-        
-        src.push("uniform int renderPass;");
 
-        src.push("in vec3 position;");
-        src.push("in vec4 flags;");
-        src.push("in vec4 flags2;");
-        src.push("uniform mat4 worldMatrix;");
-        src.push("uniform mat4 viewMatrix;");
-        src.push("uniform mat4 projMatrix;");
-        src.push("uniform mat4 positionsDecodeMatrix;");
-        src.push("uniform vec4 color;");
-
-        src.push("void main(void) {");
+        // Triangles batching silhouette vertex shader
 
         // flags.y = NOT_RENDERED | SILHOUETTE_HIGHLIGHTED | SILHOUETTE_SELECTED | SILHOUETTE_XRAYED
         // renderPass = SILHOUETTE_HIGHLIGHTED | SILHOUETTE_SELECTED | | SILHOUETTE_XRAYED
 
-        src.push(`if (int(flags.y) != renderPass) {`);
-        src.push("   gl_Position = vec4(0.0, 0.0, 0.0, 0.0);"); // Cull vertex
-        src.push("} else {");
+        src.push(`\
+        #version 300 es
 
-        src.push("      vec4 worldPosition = worldMatrix * (positionsDecodeMatrix * vec4(position, 1.0)); ");
-        src.push("vec4 viewPosition  = viewMatrix * worldPosition; ");
-        src.push("vec4 clipPos = projMatrix * viewPosition;");
-        src.push("gl_Position = clipPos;");
-        src.push("}");
-        src.push("}");
+        uniform int renderPass;
+
+        in vec3 position;
+        in vec4 flags;
+        in vec4 flags2;
+    
+        uniform mat4 worldMatrix;
+        uniform mat4 viewMatrix;
+        uniform mat4 projMatrix;
+        uniform mat4 positionsDecodeMatrix;
+        uniform vec4 color;
+
+        void main(void) {
+            if (int(flags.y) != renderPass) {
+                gl_Position = vec4(0.0, 0.0, 0.0, 0.0);
+            } else {
+                vec4 worldPosition = worldMatrix * (positionsDecodeMatrix * vec4(position, 1.0)); 
+                vec4 viewPosition  = viewMatrix * worldPosition; 
+                vec4 clipPos = projMatrix * viewPosition;
+                gl_Position = clipPos;
+            }
+        }
+        `);
+
         return src;
     }
 
     _buildFragmentShader() {
         const src = [];
-        src.push("#version 300 es");
-        src.push("// Triangles batching silhouette fragment shader");
-        
-        src.push("#ifdef GL_FRAGMENT_PRECISION_HIGH");
-        src.push("precision highp float;");
-        src.push("precision highp int;");
-        src.push("#else");
-        src.push("precision mediump float;");
-        src.push("precision mediump int;");
-        src.push("#endif");
-        src.push("uniform vec4 color;");
-        src.push("out vec4 outColor;");
-        src.push("void main(void) {");
-        src.push("outColor = color;");
-        src.push("}");
+        // Triangles batching silhouette fragment shader
+        src.push(`\
+            #version 300 es
+
+            #ifdef GL_FRAGMENT_PRECISION_HIGH
+            precision highp float;
+            precision highp int;
+            #else
+            precision mediump float;
+            precision mediump int;
+            #endif
+
+            uniform vec4 color;
+            out vec4 outColor;
+
+            void main(void) {
+                outColor = color;
+            }
+        `);
         return src;
     }
 

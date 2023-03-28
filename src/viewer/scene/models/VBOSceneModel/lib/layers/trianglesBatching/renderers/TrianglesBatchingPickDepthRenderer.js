@@ -17,7 +17,7 @@ class TrianglesBatchingPickDepthRenderer {
     }
 
     _getHash() {
-        return ""; // was section plan get hash
+        return "";
     }
 
     drawLayer(frameCtx, batchingLayer, renderPass) {
@@ -113,75 +113,77 @@ class TrianglesBatchingPickDepthRenderer {
     }
 
     _buildVertexShader() {
-        const src = [];
-        src.push("#version 300 es");
-        src.push("// Triangles batching pick depth vertex shader");
-
-        
-
-        src.push("uniform int renderPass;");
-
-        src.push("in vec3 position;");
-        src.push("in vec4 flags;");
-        src.push("in vec4 flags2;");
-
-        src.push("uniform bool pickInvisible;");
-
-        src.push("uniform mat4 worldMatrix;");
-        src.push("uniform mat4 viewMatrix;");
-        src.push("uniform mat4 projMatrix;");
-        src.push("uniform mat4 positionsDecodeMatrix;");
-
-        src.push("out vec4 vViewPosition;");
-        src.push("void main(void) {");
+        // Triangles batching pick depth vertex shader
 
         // flags.w = NOT_RENDERED | PICK
         // renderPass = PICK
+        const src = [`\
+        #version 300 es
 
-        src.push(`if (int(flags.w) != renderPass) {`);
-        src.push("      gl_Position = vec4(0.0, 0.0, 0.0, 0.0);"); // Cull vertex
-        src.push("  } else {");
-        src.push("      vec4 worldPosition = worldMatrix * (positionsDecodeMatrix * vec4(position, 1.0)); ");
-        src.push("      vec4 viewPosition  = viewMatrix * worldPosition; ");
-        src.push("vViewPosition = viewPosition;");
-        src.push("vec4 clipPos = projMatrix * viewPosition;");
-        src.push("gl_Position = clipPos;");
-        src.push("  }");
-        src.push("}");
+        uniform int renderPass;
+
+        in vec3 position;
+        in vec4 flags;
+        in vec4 flags2;
+
+        uniform bool pickInvisible;
+        uniform mat4 worldMatrix;
+        uniform mat4 viewMatrix;
+        uniform mat4 projMatrix;
+        uniform mat4 positionsDecodeMatrix;
+
+        out vec4 vViewPosition;
+
+        void main(void) {
+            if (int(flags.w) != renderPass) {
+                gl_Position = vec4(0.0, 0.0, 0.0, 0.0);
+            } else {
+                vec4 worldPosition = worldMatrix * (positionsDecodeMatrix * vec4(position, 1.0)); 
+                vec4 viewPosition  = viewMatrix * worldPosition; 
+                vViewPosition = viewPosition;
+                vec4 clipPos = projMatrix * viewPosition;
+                gl_Position = clipPos;
+            }
+        }
+        `];
+
         return src;
     }
 
     _buildFragmentShader() {
-        const src = [];
-        src.push("#version 300 es");
-        src.push("// Triangles batching pick depth fragment shader");
+        // Triangles batching pick depth fragment shader
+        const src = [`\
+        #version 300 es
+        #ifdef GL_FRAGMENT_PRECISION_HIGH
+        precision highp float;
+        precision highp int;
+        #else
+        precision mediump float;
+        precision mediump int;
+        #endif
 
-        
+        uniform float pickZNear;
+        uniform float pickZFar;
 
-        src.push("#ifdef GL_FRAGMENT_PRECISION_HIGH");
-        src.push("precision highp float;");
-        src.push("precision highp int;");
-        src.push("#else");
-        src.push("precision mediump float;");
-        src.push("precision mediump int;");
-        src.push("#endif");
+        in vec4 vViewPosition;
 
-        src.push("uniform float pickZNear;");
-        src.push("uniform float pickZFar;");
+        vec4 packDepth(const in float depth) {
+            const vec4 bitShift = vec4(256.0*256.0*256.0, 256.0*256.0, 256.0, 1.0);
+            const vec4 bitMask  = vec4(0.0, 1.0/256.0, 1.0/256.0, 1.0/256.0);
+            vec4 res = fract(depth * bitShift);
+            res -= res.xxyz * bitMask;
+            return res;
+        }
 
-        src.push("in vec4 vViewPosition;");
-        src.push("vec4 packDepth(const in float depth) {");
-        src.push("  const vec4 bitShift = vec4(256.0*256.0*256.0, 256.0*256.0, 256.0, 1.0);");
-        src.push("  const vec4 bitMask  = vec4(0.0, 1.0/256.0, 1.0/256.0, 1.0/256.0);");
-        src.push("  vec4 res = fract(depth * bitShift);");
-        src.push("  res -= res.xxyz * bitMask;");
-        src.push("  return res;");
-        src.push("}");
-        src.push("out vec4 outColor;");
-        src.push("void main(void) {");
-        src.push("    float zNormalizedDepth = abs((pickZNear + vViewPosition.z) / (pickZFar - pickZNear));");
-        src.push("    outColor = packDepth(zNormalizedDepth); ");  // Must be linear depth
-        src.push("}");
+        out vec4 outColor;
+
+        void main(void) {
+            float zNormalizedDepth = abs((pickZNear + vViewPosition.z) / (pickZFar - pickZNear));
+            outColor = packDepth(zNormalizedDepth); 
+        }`
+        ];
+
+        // Must be linear depth
         return src;
     }
 

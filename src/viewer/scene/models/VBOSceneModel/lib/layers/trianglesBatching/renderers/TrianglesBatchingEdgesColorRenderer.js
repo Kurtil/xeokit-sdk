@@ -17,7 +17,7 @@ class TrianglesBatchingEdgesColorRenderer {
     }
 
     _getHash() {
-        return ""; // was section plan get hash
+        return "";
     }
 
     drawLayer(frameCtx, batchingLayer, renderPass) {
@@ -107,64 +107,63 @@ class TrianglesBatchingEdgesColorRenderer {
     }
 
     _buildVertexShader() {
-        const src = [];
-        src.push("#version 300 es");
-        src.push("// Batched geometry edges drawing vertex shader");
-
-        src.push("uniform int renderPass;");
-
-        src.push("in vec3 position;");
-        src.push("in vec4 color;");
-        src.push("in vec4 flags;");
-        src.push("in vec4 flags2;");
-
-        src.push("uniform mat4 worldMatrix;");
-        src.push("uniform mat4 viewMatrix;");
-        src.push("uniform mat4 projMatrix;");
-        src.push("uniform mat4 positionsDecodeMatrix;");
-
-        src.push("out vec4 vColor;");
-        src.push("void main(void) {");
+        // Batched geometry edges drawing vertex shader
 
         // flags.z = NOT_RENDERED | EDGES_COLOR_OPAQUE | EDGES_COLOR_TRANSPARENT | EDGES_HIGHLIGHTED | EDGES_XRAYED | EDGES_SELECTED
         // renderPass = EDGES_COLOR_OPAQUE | EDGES_COLOR_TRANSPARENT
+        const src = [`\
+        #version 300 es
 
-        src.push(`if (int(flags.z) != renderPass) {`);
-        src.push("   gl_Position = vec4(0.0, 0.0, 0.0, 0.0);"); // Cull vertex
+        uniform int renderPass;
 
-        src.push("} else {");
+        in vec3 position;
+        in vec4 color;
+        in vec4 flags;
+        in vec4 flags2;
 
-        src.push("      vec4 worldPosition = worldMatrix * (positionsDecodeMatrix * vec4(position, 1.0)); ");
-        src.push("      vec4 viewPosition  = viewMatrix * worldPosition; ");
+        uniform mat4 worldMatrix;
+        uniform mat4 viewMatrix;
+        uniform mat4 projMatrix;
+        uniform mat4 positionsDecodeMatrix;
 
-        src.push("vec4 clipPos = projMatrix * viewPosition;");
+        out vec4 vColor;
 
-        src.push("gl_Position = clipPos;");
-        //src.push("vColor = vec4(float(color.r-100.0) / 255.0, float(color.g-100.0) / 255.0, float(color.b-100.0) / 255.0, float(color.a) / 255.0);");
-        src.push("vColor = vec4(float(color.r*0.5) / 255.0, float(color.g*0.5) / 255.0, float(color.b*0.5) / 255.0, float(color.a) / 255.0);");
-        src.push("}");
-        src.push("}");
+        void main(void) {
+            if (int(flags.z) != renderPass) {
+                gl_Position = vec4(0.0, 0.0, 0.0, 0.0);
+            } else {
+                vec4 worldPosition = worldMatrix * (positionsDecodeMatrix * vec4(position, 1.0)); 
+                vec4 viewPosition  = viewMatrix * worldPosition; 
+                vec4 clipPos = projMatrix * viewPosition;
+                gl_Position = clipPos;
+                vColor = vec4(float(color.r*0.5) / 255.0, float(color.g*0.5) / 255.0, float(color.b*0.5) / 255.0, float(color.a) / 255.0);
+            }
+        }`
+        ];
+
         return src;
     }
 
     _buildFragmentShader() {
-        const src = [];
-        src.push("#version 300 es");
-        src.push("// Batched geometry edges drawing fragment shader");
-        src.push("#ifdef GL_FRAGMENT_PRECISION_HIGH");
-        src.push("precision highp float;");
-        src.push("precision highp int;");
-        src.push("#else");
-        src.push("precision mediump float;");
-        src.push("precision mediump int;");
-        src.push("#endif");
+        // Batched geometry edges drawing fragment shader
+        const src = [`\
+        #version 300 es
 
-        src.push("in vec4 vColor;");
-        src.push("out vec4 outColor;");
-        src.push("void main(void) {");
+        #ifdef GL_FRAGMENT_PRECISION_HIGH
+        precision highp float;
+        precision highp int;
+        #else
+        precision mediump float;
+        precision mediump int;
+        #endif
 
-        src.push("outColor = vColor;");
-        src.push("}");
+        in vec4 vColor;
+        out vec4 outColor;
+
+        void main(void) {
+            outColor = vColor;
+        }`
+        ];
         return src;
     }
 
