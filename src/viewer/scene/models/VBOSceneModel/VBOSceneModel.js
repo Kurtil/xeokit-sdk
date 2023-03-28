@@ -2922,38 +2922,8 @@ ${cfg.uv && cfg.uv.length > 0 ? 1 : 0}-${cfg.uvCompressed && cfg.uvCompressed.le
         renderFlags.numLayers = this._layerList.length;
         renderFlags.numVisibleLayers = 0;
         for (let layerIndex = 0, len = this._layerList.length; layerIndex < len; layerIndex++) {
-            const layer = this._layerList[layerIndex];
-            const layerVisible = this._getActiveSectionPlanesForLayer(layer);
-            if (layerVisible) {
-                renderFlags.visibleLayers[renderFlags.numVisibleLayers++] = layerIndex;
-            }
+            renderFlags.visibleLayers[renderFlags.numVisibleLayers++] = layerIndex;
         }
-    }
-
-    /** @private */
-    _getActiveSectionPlanesForLayer(layer) {
-
-        const renderFlags = this.renderFlags;
-        const sectionPlanes = this.scene._sectionPlanesState.sectionPlanes;
-        const numSectionPlanes = sectionPlanes.length;
-        const baseIndex = layer.layerIndex * numSectionPlanes;
-
-        if (numSectionPlanes > 0) {
-            for (let i = 0; i < numSectionPlanes; i++) {
-
-                const sectionPlane = sectionPlanes[i];
-
-                if (!sectionPlane.active) {
-                    renderFlags.sectionPlanesActivePerLayer[baseIndex + i] = false;
-
-                } else {
-                    renderFlags.sectionPlanesActivePerLayer[baseIndex + i] = true;
-                    renderFlags.sectioned = true;
-                }
-            }
-        }
-
-        return true;
     }
 
     /** @private */

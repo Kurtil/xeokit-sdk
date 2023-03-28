@@ -29,11 +29,9 @@ const Renderer = function (scene, options) {
     let drawableListDirty = true;
     let stateSortDirty = true;
     let imageDirty = true;
-    let shadowsDirty = true;
 
     let transparentEnabled = true;
     let edgesEnabled = true;
-    let pbrEnabled = true;
     let colorTextureEnabled = true;
 
     const renderBufferManager = new RenderBufferManager(scene);
@@ -62,11 +60,6 @@ const Renderer = function (scene, options) {
         imageDirty = true;
     };
 
-    this.setPBREnabled = function (enabled) {
-        pbrEnabled = enabled;
-        imageDirty = true;
-    };
-
     this.setColorTextureEnabled = function (enabled) {
         colorTextureEnabled = enabled;
         imageDirty = true;
@@ -74,10 +67,6 @@ const Renderer = function (scene, options) {
 
     this.needStateSort = function () {
         stateSortDirty = true;
-    };
-
-    this.shadowsDirty = function () {
-        shadowsDirty = true;
     };
 
     this.imageDirty = function () {
@@ -302,7 +291,6 @@ const Renderer = function (scene, options) {
 
             frameCtx.reset();
             frameCtx.pass = params.pass;
-            frameCtx.pbrEnabled = pbrEnabled && !!scene.pbrEnabled;
             frameCtx.colorTextureEnabled = colorTextureEnabled && !!scene.colorTextureEnabled;
 
             gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);

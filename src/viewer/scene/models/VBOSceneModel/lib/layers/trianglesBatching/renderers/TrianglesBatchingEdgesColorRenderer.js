@@ -1,8 +1,5 @@
 import {Program} from "../../../../../../webgl/Program.js";
-import {createRTCViewMat, getPlaneRTCPos} from "../../../../../../math/rtcCoords.js";
-import {math} from "../../../../../../math/math.js";
-
-const tempVec3a = math.vec3();
+import {createRTCViewMat} from "../../../../../../math/rtcCoords.js";
 
 /**
  * @private
@@ -17,10 +14,10 @@ class TrianglesBatchingEdgesColorRenderer {
 
     getValid() {
         return this._hash === this._getHash();
-    };
+    }
 
     _getHash() {
-        return this._scene._sectionPlanesState.getHash();
+        return ""; // was section plan get hash
     }
 
     drawLayer(frameCtx, batchingLayer, renderPass) {
@@ -49,37 +46,10 @@ class TrianglesBatchingEdgesColorRenderer {
         gl.uniformMatrix4fv(this._uViewMatrix, false, (origin) ? createRTCViewMat(camera.viewMatrix, origin) : camera.viewMatrix);
         gl.uniformMatrix4fv(this._uWorldMatrix, false, model.worldMatrix);
 
-        const numSectionPlanes = scene._sectionPlanesState.sectionPlanes.length;
-        if (numSectionPlanes > 0) {
-            const sectionPlanes = scene._sectionPlanesState.sectionPlanes;
-            const baseIndex = batchingLayer.layerIndex * numSectionPlanes;
-            const renderFlags = model.renderFlags;
-            for (let sectionPlaneIndex = 0; sectionPlaneIndex < numSectionPlanes; sectionPlaneIndex++) {
-                const sectionPlaneUniforms = this._uSectionPlanes[sectionPlaneIndex];
-                if (sectionPlaneUniforms) {
-                    const active = renderFlags.sectionPlanesActivePerLayer[baseIndex + sectionPlaneIndex];
-                    gl.uniform1i(sectionPlaneUniforms.active, active ? 1 : 0);
-                    if (active) {
-                        const sectionPlane = sectionPlanes[sectionPlaneIndex];
-                        if (origin) {
-                            const rtcSectionPlanePos = getPlaneRTCPos(sectionPlane.dist, sectionPlane.dir, origin, tempVec3a);
-                            gl.uniform3fv(sectionPlaneUniforms.pos, rtcSectionPlanePos);
-                        } else {
-                            gl.uniform3fv(sectionPlaneUniforms.pos, sectionPlane.pos);
-                        }
-                        gl.uniform3fv(sectionPlaneUniforms.dir, sectionPlane.dir);
-                    }
-                }
-            }
-        }
-
         gl.uniformMatrix4fv(this._uPositionsDecodeMatrix, false, batchingLayer._state.positionsDecodeMatrix);
 
         this._aPosition.bindArrayBuffer(state.positionsBuf);
         this._aColor.bindArrayBuffer(state.colorsBuf);
-        if (this._aOffset) {
-            this._aOffset.bindArrayBuffer(state.offsetsBuf);
-        }
         if (this._aFlags) {
             this._aFlags.bindArrayBuffer(state.flagsBuf);
         }
@@ -110,25 +80,11 @@ class TrianglesBatchingEdgesColorRenderer {
         this._uViewMatrix = program.getLocation("viewMatrix");
         this._uWorldMatrix = program.getLocation("worldMatrix");
         this._uProjMatrix = program.getLocation("projMatrix");
-        this._uSectionPlanes = [];
-
-        for (let i = 0, len = scene._sectionPlanesState.sectionPlanes.length; i < len; i++) {
-            this._uSectionPlanes.push({
-                active: program.getLocation("sectionPlaneActive" + i),
-                pos: program.getLocation("sectionPlanePos" + i),
-                dir: program.getLocation("sectionPlaneDir" + i)
-            });
-        }
 
         this._aPosition = program.getAttribute("position");
         this._aColor = program.getAttribute("color");
-        this._aOffset = program.getAttribute("offset");
         this._aFlags = program.getAttribute("flags");
         this._aFlags2 = program.getAttribute("flags2");
-
-        if (scene.logarithmicDepthBufferEnabled) {
-            this._uLogDepthBufFC = program.getLocation("logDepthBufFC");
-        }
     }
 
     _bindProgram() {
@@ -141,11 +97,6 @@ class TrianglesBatchingEdgesColorRenderer {
         program.bind();
 
         gl.uniformMatrix4fv(this._uProjMatrix, false, project.matrix);
-
-        if (scene.logarithmicDepthBufferEnabled) {
-            const logDepthBufFC = 2.0 / (Math.log(project.far + 1.0) / Math.LN2);
-            gl.uniform1f(this._uLogDepthBufFC, logDepthBufFC);
-        }
     }
 
     _buildShader() {
@@ -156,9 +107,6 @@ class TrianglesBatchingEdgesColorRenderer {
     }
 
     _buildVertexShader() {
-        const scene = this._scene;
-        const sectionPlanesState = scene._sectionPlanesState;
-        const clipping = sectionPlanesState.sectionPlanes.length > 0;
         const src = [];
         src.push("#version 300 es");
         src.push("// Batched geometry edges drawing vertex shader");
@@ -167,9 +115,6 @@ class TrianglesBatchingEdgesColorRenderer {
 
         src.push("in vec3 position;");
         src.push("in vec4 color;");
-        if (scene.entityOffsetsEnabled) {
-            src.push("in vec3 offset;");
-        }
         src.push("in vec4 flags;");
         src.push("in vec4 flags2;");
 
@@ -177,20 +122,6 @@ class TrianglesBatchingEdgesColorRenderer {
         src.push("uniform mat4 viewMatrix;");
         src.push("uniform mat4 projMatrix;");
         src.push("uniform mat4 positionsDecodeMatrix;");
-
-        if (scene.logarithmicDepthBufferEnabled) {
-            src.push("uniform float logDepthBufFC;");
-            src.push("out float vFragDepth;");
-            src.push("bool isPerspectiveMatrix(mat4 m) {");
-            src.push("    return (m[2][3] == - 1.0);");
-            src.push("}");
-            src.push("out float isPerspective;");
-        }
-
-        if (clipping) {
-            src.push("out vec4 vWorldPosition;");
-            src.push("out vec4 vFlags2;");
-        }
 
         src.push("out vec4 vColor;");
         src.push("void main(void) {");
@@ -204,21 +135,10 @@ class TrianglesBatchingEdgesColorRenderer {
         src.push("} else {");
 
         src.push("      vec4 worldPosition = worldMatrix * (positionsDecodeMatrix * vec4(position, 1.0)); ");
-        if (scene.entityOffsetsEnabled) {
-            src.push("      worldPosition.xyz = worldPosition.xyz + offset;");
-        }
         src.push("      vec4 viewPosition  = viewMatrix * worldPosition; ");
 
-        if (clipping) {
-            src.push("  vWorldPosition = worldPosition;");
-            src.push("  vFlags2 = flags2;");
-        }
-
         src.push("vec4 clipPos = projMatrix * viewPosition;");
-        if (scene.logarithmicDepthBufferEnabled) {
-           src.push("vFragDepth = 1.0 + clipPos.w;");
-            src.push("isPerspective = float (isPerspectiveMatrix(projMatrix));");
-        }
+
         src.push("gl_Position = clipPos;");
         //src.push("vColor = vec4(float(color.r-100.0) / 255.0, float(color.g-100.0) / 255.0, float(color.b-100.0) / 255.0, float(color.a) / 255.0);");
         src.push("vColor = vec4(float(color.r*0.5) / 255.0, float(color.g*0.5) / 255.0, float(color.b*0.5) / 255.0, float(color.a) / 255.0);");
@@ -228,9 +148,6 @@ class TrianglesBatchingEdgesColorRenderer {
     }
 
     _buildFragmentShader() {
-        const scene = this._scene;
-        const sectionPlanesState = scene._sectionPlanesState;
-        const clipping = sectionPlanesState.sectionPlanes.length > 0;
         const src = [];
         src.push("#version 300 es");
         src.push("// Batched geometry edges drawing fragment shader");
@@ -241,38 +158,11 @@ class TrianglesBatchingEdgesColorRenderer {
         src.push("precision mediump float;");
         src.push("precision mediump int;");
         src.push("#endif");
-        if (scene.logarithmicDepthBufferEnabled) {
-            src.push("in float isPerspective;");
-            src.push("uniform float logDepthBufFC;");
-            src.push("in float vFragDepth;");
-        }
-        if (clipping) {
-            src.push("in vec4 vWorldPosition;");
-            src.push("in vec4 vFlags2;");
-            for (let i = 0, len = sectionPlanesState.sectionPlanes.length; i < len; i++) {
-                src.push("uniform bool sectionPlaneActive" + i + ";");
-                src.push("uniform vec3 sectionPlanePos" + i + ";");
-                src.push("uniform vec3 sectionPlaneDir" + i + ";");
-            }
-        }
+
         src.push("in vec4 vColor;");
         src.push("out vec4 outColor;");
         src.push("void main(void) {");
-        if (clipping) {
-            src.push("  bool clippable = (float(vFlags2.x) > 0.0);");
-            src.push("  if (clippable) {");
-            src.push("  float dist = 0.0;");
-            for (let i = 0, len = sectionPlanesState.sectionPlanes.length; i < len; i++) {
-                src.push("if (sectionPlaneActive" + i + ") {");
-                src.push("   dist += clamp(dot(-sectionPlaneDir" + i + ".xyz, vWorldPosition.xyz - sectionPlanePos" + i + ".xyz), 0.0, 1000.0);");
-                src.push("}");
-            }
-            src.push("  if (dist > 0.0) { discard; }");
-            src.push("}");
-        }
-        if (scene.logarithmicDepthBufferEnabled) {
-            src.push("    gl_FragDepth = isPerspective == 0.0 ? gl_FragCoord.z : log2( vFragDepth ) * logDepthBufFC * 0.5;");
-        }
+
         src.push("outColor = vColor;");
         src.push("}");
         return src;

@@ -43,285 +43,6 @@ function getEntityIDMap(scene, entityIds) {
     return map;
 }
 
-/**
- * Fired whenever a debug message is logged on a component within this Scene.
- * @event log
- * @param {String} value The debug message
- */
-
-/**
- * Fired whenever an error is logged on a component within this Scene.
- * @event error
- * @param {String} value The error message
- */
-
-/**
- * Fired whenever a warning is logged on a component within this Scene.
- * @event warn
- * @param {String} value The warning message
- */
-
-/**
- * @desc Contains the components that comprise a 3D scene.
- *
- * * A {@link Viewer} has a single Scene, which it provides in {@link Viewer#scene}.
- * * Plugins like {@link AxisGizmoPlugin} also have their own private Scenes.
- * * Each Scene has a corresponding {@link MetaScene}, which the Viewer provides in {@link Viewer#metaScene}.
- *
- * ## Getting a Viewer's Scene
- *
- * ````javascript
- * var scene = viewer.scene;
- * ````
- *
- * ## Creating and accessing Scene components
- *
- * As a brief introduction to creating Scene components, we'll create a {@link Mesh} that has a
- * {@link buildTorusGeometry} and a {@link PhongMaterial}:
- *
- * ````javascript
- * var teapotMesh = new Mesh(scene, {
- *     id: "myMesh",                               // <<---------- ID automatically generated if not provided
- *     geometry: new TorusGeometry(scene),
- *     material: new PhongMaterial(scene, {
- *         id: "myMaterial",
- *         diffuse: [0.2, 0.2, 1.0]
- *     })
- * });
- *
- * teapotMesh.scene.camera.eye = [45, 45, 45];
- * ````
- *
- * Find components by ID in their Scene's {@link Scene#components} map:
- *
- * ````javascript
- * var teapotMesh = scene.components["myMesh"];
- * teapotMesh.visible = false;
- *
- * var teapotMaterial = scene.components["myMaterial"];
- * teapotMaterial.diffuse = [1,0,0]; // Change to red
- * ````
- *
- * A Scene also has a map of component instances for each {@link Component} subtype:
- *
- * ````javascript
- * var meshes = scene.types["Mesh"];
- * var teapotMesh = meshes["myMesh"];
- * teapotMesh.xrayed = true;
- *
- * var phongMaterials = scene.types["PhongMaterial"];
- * var teapotMaterial = phongMaterials["myMaterial"];
- * teapotMaterial.diffuse = [0,1,0]; // Change to green
- * ````
- *
- * See {@link Node}, {@link Node} and {@link Model} for how to create and access more sophisticated content.
- *
- * ## Controlling the camera
- *
- * Use the Scene's {@link Camera} to control the current viewpoint and projection:
- *
- * ````javascript
- * var camera = myScene.camera;
- *
- * camera.eye = [-10,0,0];
- * camera.look = [-10,0,0];
- * camera.up = [0,1,0];
- *
- * camera.projection = "perspective";
- * camera.perspective.fov = 45;
- * //...
- * ````
- *
- * ## Managing the canvas
- *
- * The Scene's {@link Canvas} component provides various conveniences relevant to the WebGL canvas, such
- * as firing resize events etc:
- *
- * ````javascript
- * var canvas = scene.canvas;
- *
- * canvas.on("boundary", function(boundary) {
- *     //...
- * });
- * ````
- *
- * ## Picking
- *
- * Use {@link Scene#pick} to pick and raycast entites.
- *
- * For example, to pick a point on the surface of the closest entity at the given canvas coordinates:
- *
- * ````javascript
- * var pickResult = scene.pick({
- *      pickSurface: true,
- *      canvasPos: [23, 131]
- * });
- *
- * if (pickResult) { // Picked an entity
- *
- *     var entity = pickResult.entity;
- *
- *     var primitive = pickResult.primitive; // Type of primitive that was picked, usually "triangles"
- *     var primIndex = pickResult.primIndex; // Position of triangle's first index in the picked Mesh's Geometry's indices array
- *     var indices = pickResult.indices; // UInt32Array containing the triangle's vertex indices
- *     var localPos = pickResult.localPos; // Float64Array containing the picked Local-space position on the triangle
- *     var worldPos = pickResult.worldPos; // Float64Array containing the picked World-space position on the triangle
- *     var viewPos = pickResult.viewPos; // Float64Array containing the picked View-space position on the triangle
- *     var bary = pickResult.bary; // Float64Array containing the picked barycentric position within the triangle
- *     var normal = pickResult.normal; // Float64Array containing the interpolated normal vector at the picked position on the triangle
- *     var uv = pickResult.uv; // Float64Array containing the interpolated UV coordinates at the picked position on the triangle
- * }
- * ````
- *
- * ## Pick masking
- *
- * We can use {@link Scene#pick}'s ````includeEntities```` and ````excludeEntities````  options to mask which {@link Mesh}es we attempt to pick.
- *
- * This is useful for picking through things, to pick only the Entities of interest.
- *
- * To pick only Entities ````"gearbox#77.0"```` and ````"gearbox#79.0"````, picking through any other Entities that are
- * in the way, as if they weren't there:
- *
- * ````javascript
- * var pickResult = scene.pick({
- *      canvasPos: [23, 131],
- *      includeEntities: ["gearbox#77.0", "gearbox#79.0"]
- * });
- *
- * if (pickResult) {
- *       // Entity will always be either "gearbox#77.0" or "gearbox#79.0"
- *       var entity = pickResult.entity;
- * }
- * ````
- *
- * To pick any pickable Entity, except for ````"gearbox#77.0"```` and ````"gearbox#79.0"````, picking through those
- * Entities if they happen to be in the way:
- *
- * ````javascript
- * var pickResult = scene.pick({
- *      canvasPos: [23, 131],
- *      excludeEntities: ["gearbox#77.0", "gearbox#79.0"]
- * });
- *
- * if (pickResult) {
- *       // Entity will never be "gearbox#77.0" or "gearbox#79.0"
- *       var entity = pickResult.entity;
- * }
- * ````
- *
- * See {@link Scene#pick} for more info on picking.
- *
- * ## Querying and tracking boundaries
- *
- * Getting a Scene's World-space axis-aligned boundary (AABB):
- *
- * ````javascript
- * var aabb = scene.aabb; // [xmin, ymin, zmin, xmax, ymax, zmax]
- * ````
- *
- * Subscribing to updates to the AABB, which occur whenever {@link Entity}s are transformed, their
- * {@link ReadableGeometry}s have been updated, or the {@link Camera} has moved:
- *
- * ````javascript
- * scene.on("boundary", function() {
- *      var aabb = scene.aabb;
- * });
- * ````
- *
- * Getting the AABB of the {@link Entity}s with the given IDs:
- *
- * ````JavaScript
- * scene.getAABB(); // Gets collective boundary of all Entities in the scene
- * scene.getAABB("saw"); // Gets boundary of an Object
- * scene.getAABB(["saw", "gearbox"]); // Gets collective boundary of two Objects
- * ````
- *
- * See {@link Scene#getAABB} and {@link Entity} for more info on querying and tracking boundaries.
- *
- * ## Managing the viewport
- *
- * The Scene's {@link Viewport} component manages the WebGL viewport:
- *
- * ````javascript
- * var viewport = scene.viewport
- * viewport.boundary = [0, 0, 500, 400];;
- * ````
- *
- * ## Controlling rendering
- *
- * You can configure a Scene to perform multiple "passes" (renders) per frame. This is useful when we want to render the
- * scene to multiple viewports, such as for stereo effects.
- *
- * In the example, below, we'll configure the Scene to render twice on each frame, each time to different viewport. We'll do this
- * with a callback that intercepts the Scene before each render and sets its {@link Viewport} to a
- * different portion of the canvas. By default, the Scene will clear the canvas only before the first render, allowing the
- * two views to be shown on the canvas at the same time.
- *
- * ````Javascript
- * var viewport = scene.viewport;
- *
- * // Configure Scene to render twice for each frame
- * scene.passes = 2; // Default is 1
- * scene.clearEachPass = false; // Default is false
- *
- * // Render to a separate viewport on each render
- *
- * var viewport = scene.viewport;
- * viewport.autoBoundary = false;
- *
- * scene.on("rendering", function (e) {
- *      switch (e.pass) {
- *          case 0:
- *              viewport.boundary = [0, 0, 200, 200]; // xmin, ymin, width, height
- *              break;
- *
- *          case 1:
- *              viewport.boundary = [200, 0, 200, 200];
- *              break;
- *      }
- * });
- *
- * // We can also intercept the Scene after each render,
- * // (though we're not using this for anything here)
- * scene.on("rendered", function (e) {
- *      switch (e.pass) {
- *          case 0:
- *              break;
- *
- *          case 1:
- *              break;
- *      }
- * });
- * ````
- *
- * ## Gamma correction
- *
- * Within its shaders, xeokit performs shading calculations in linear space.
- *
- * By default, the Scene expects color textures (eg. {@link PhongMaterial#diffuseMap},
- * {@link MetallicMaterial#baseColorMap} and {@link SpecularMaterial#diffuseMap}) to
- * be in pre-multipled gamma space, so will convert those to linear space before they are used in shaders. Other textures are
- * always expected to be in linear space.
- *
- * By default, the Scene will also gamma-correct its rendered output.
- *
- * You can configure the Scene to expect all those color textures to be linear space, so that it does not gamma-correct them:
- *
- * ````javascript
- * scene.gammaInput = false;
- * ````
- *
- * You would still need to gamma-correct the output, though, if it's going straight to the canvas, so normally we would
- * leave that enabled:
- *
- * ````javascript
- * scene.gammaOutput = true;
- * ````
- *
- * See {@link Texture} for more information on texture encoding and gamma.
- *
- * @class Scene
- */
 class Scene extends Component {
 
     /**
@@ -356,150 +77,32 @@ class Scene extends Component {
 
         this._aabbDirty = true;
 
-        /**
-         * The {@link Viewer} this Scene belongs to.
-         * @type {Viewer}
-         */
         this.viewer = viewer;
-
-        /**
-         The number of models currently loading.
-
-         @property loading
-         @final
-         @type {Number}
-         */
         this.loading = 0;
-
-        /**
-         The epoch time (in milliseconds since 1970) when this Scene was instantiated.
-
-         @property timeCreated
-         @final
-         @type {Number}
-         */
-        this.startTime = (new Date()).getTime();
-
-        /**
-         * Map of {@link Entity}s that represent models.
-         *
-         * Each {@link Entity} is mapped here by {@link Entity#id} when {@link Entity#isModel} is ````true````.
-         *
-         * @property models
-         * @final
-         * @type {{String:Entity}}
-         */
         this.models = {};
-
-        /**
-         * Map of {@link Entity}s that represents objects.
-         *
-         * Each {@link Entity} is mapped here by {@link Entity#id} when {@link Entity#isObject} is ````true````.
-         *
-         * @property objects
-         * @final
-         * @type {{String:Entity}}
-         */
         this.objects = {};
         this._numObjects = 0;
 
-        /**
-         * Map of currently visible {@link Entity}s that represent objects.
-         *
-         * An Entity represents an object if {@link Entity#isObject} is ````true````, and is visible when {@link Entity#visible} is true.
-         *
-         * @property visibleObjects
-         * @final
-         * @type {{String:Object}}
-         */
         this.visibleObjects = {};
         this._numVisibleObjects = 0;
 
-        /**
-         * Map of currently xrayed {@link Entity}s that represent objects.
-         *
-         * An Entity represents an object if {@link Entity#isObject} is ````true````, and is xrayed when {@link Entity#xrayed} is true.
-         *
-         * Each {@link Entity} is mapped here by {@link Entity#id}.
-         *
-         * @property xrayedObjects
-         * @final
-         * @type {{String:Object}}
-         */
         this.xrayedObjects = {};
         this._numXRayedObjects = 0;
 
-        /**
-         * Map of currently highlighted {@link Entity}s that represent objects.
-         *
-         * An Entity represents an object if {@link Entity#isObject} is ````true```` is true, and is highlighted when {@link Entity#highlighted} is true.
-         *
-         * Each {@link Entity} is mapped here by {@link Entity#id}.
-         *
-         * @property highlightedObjects
-         * @final
-         * @type {{String:Object}}
-         */
         this.highlightedObjects = {};
         this._numHighlightedObjects = 0;
 
-        /**
-         * Map of currently selected {@link Entity}s that represent objects.
-         *
-         * An Entity represents an object if {@link Entity#isObject} is true, and is selected while {@link Entity#selected} is true.
-         *
-         * Each {@link Entity} is mapped here by {@link Entity#id}.
-         *
-         * @property selectedObjects
-         * @final
-         * @type {{String:Object}}
-         */
         this.selectedObjects = {};
         this._numSelectedObjects = 0;
 
-        /**
-         * Map of currently colorized {@link Entity}s that represent objects.
-         *
-         * An Entity represents an object if {@link Entity#isObject} is ````true````.
-         *
-         * Each {@link Entity} is mapped here by {@link Entity#id}.
-         *
-         * @property colorizedObjects
-         * @final
-         * @type {{String:Object}}
-         */
         this.colorizedObjects = {};
         this._numColorizedObjects = 0;
 
-        /**
-         * Map of {@link Entity}s that represent objects whose opacity was updated.
-         *
-         * An Entity represents an object if {@link Entity#isObject} is ````true````.
-         *
-         * Each {@link Entity} is mapped here by {@link Entity#id}.
-         *
-         * @property opacityObjects
-         * @final
-         * @type {{String:Object}}
-         */
         this.opacityObjects = {};
         this._numOpacityObjects = 0;
 
-        /**
-         * Map of {@link Entity}s that represent objects whose {@link Entity#offset}s were updated.
-         *
-         * An Entity represents an object if {@link Entity#isObject} is ````true````.
-         *
-         * Each {@link Entity} is mapped here by {@link Entity#id}.
-         *
-         * @property offsetObjects
-         * @final
-         * @type {{String:Object}}
-         */
         this.offsetObjects = {};
         this._numOffsetObjects = 0;
-
-        // Cached ID arrays, lazy-rebuilt as needed when stale after map updates
 
         /**
          Lazy-regenerated ID lists.
@@ -526,67 +129,12 @@ class Scene extends Component {
          */
         this.types = {};
 
-        /**
-         * The {@link Component}s within this Scene, each mapped to its {@link Component#id}.
-         *
-         * *@type {{String:Component}}
-         */
         this.components = {};
 
-        /**
-         * The {@link SectionPlane}s in this Scene, each mapped to its {@link SectionPlane#id}.
-         *
-         * @type {{String:SectionPlane}}
-         */
-        this.sectionPlanes = {};
-
-        /**
-         * The {@link Light}s in this Scene, each mapped to its {@link Light#id}.
-         *
-         * @type {{String:Light}}
-         */
         this.lights = {};
 
-        /**
-         * The {@link LightMap}s in this Scene, each mapped to its {@link LightMap#id}.
-         *
-         * @type {{String:LightMap}}
-         */
-        this.lightMaps = {};
-
-        /**
-         * The {@link ReflectionMap}s in this Scene, each mapped to its {@link ReflectionMap#id}.
-         *
-         * @type {{String:ReflectionMap}}
-         */
-        this.reflectionMaps = {};
-
-        /**
-         * The {@link Bitmap}s in this Scene, each mapped to its {@link Bitmap#id}.
-         *
-         * @type {{String:Bitmap}}
-         */
-        this.bitmaps = {};
-
-        /**
-         * The {@link LineSet}s in this Scene, each mapped to its {@link LineSet#id}.
-         *
-         * @type {{String:LineSet}}
-         */
-        this.lineSets = {};
-
-        /**
-         * The real world offset for this Scene
-         *
-         * @type {Number[]}
-         */
         this.realWorldOffset = cfg.realWorldOffset || new Float64Array([0, 0, 0]);
 
-        /**
-         * Manages the HTML5 canvas for this Scene.
-         *
-         * @type {Canvas}
-         */
         this.canvas = new Canvas(this, {
             dontClear: true, // Never destroy this component with Scene#clear();
             canvas: canvas,
@@ -612,50 +160,6 @@ class Scene extends Component {
             alphaDepthMask: alphaDepthMask
         });
 
-        this._sectionPlanesState = new (function () {
-
-            this.sectionPlanes = [];
-
-            this.clippingCaps = false;
-
-            let hash = null;
-
-            this.getHash = function () {
-                if (hash) {
-                    return hash;
-                }
-                const sectionPlanes = this.sectionPlanes;
-                if (sectionPlanes.length === 0) {
-                    return this.hash = ";";
-                }
-                let sectionPlane;
-
-                const hashParts = [];
-                for (let i = 0, len = sectionPlanes.length; i < len; i++) {
-                    sectionPlane = sectionPlanes[i];
-                    hashParts.push("cp");
-                }
-                hashParts.push(";");
-                hash = hashParts.join("");
-                return hash;
-            };
-
-            this.addSectionPlane = function (sectionPlane) {
-                this.sectionPlanes.push(sectionPlane);
-                hash = null;
-            };
-
-            this.removeSectionPlane = function (sectionPlane) {
-                for (let i = 0, len = this.sectionPlanes.length; i < len; i++) {
-                    if (this.sectionPlanes[i].id === sectionPlane.id) {
-                        this.sectionPlanes.splice(i, 1);
-                        hash = null;
-                        return;
-                    }
-                }
-            };
-        })();
-
         this._lightsState = new (function () {
 
             const DEFAULT_AMBIENT = math.vec4([0, 0, 0, 0]);
@@ -680,9 +184,6 @@ class Scene extends Component {
                     hashParts.push("/");
                     hashParts.push(light.type);
                     hashParts.push((light.space === "world") ? "w" : "v");
-                    if (light.castsShadow) {
-                        hashParts.push("sh");
-                    }
                 }
                 if (this.lightMaps.length > 0) {
                     hashParts.push("/lm");
@@ -807,7 +308,6 @@ class Scene extends Component {
         this._pickSurfacePrecisionEnabled = !!cfg.pickSurfacePrecisionEnabled;
         this._logarithmicDepthBufferEnabled = !!cfg.logarithmicDepthBufferEnabled;
 
-        this._pbrEnabled = !!cfg.pbrEnabled;
         this._colorTextureEnabled = (cfg.colorTextureEnabled !== false);
 
         // Register Scene on xeokit
@@ -1222,29 +722,6 @@ class Scene extends Component {
     }
 
     /**
-     * Sets whether physically-based rendering is enabled.
-     *
-     * Default is ````false````.
-     *
-     * @returns {Boolean} True if quality rendering is enabled.
-     */
-    set pbrEnabled(pbrEnabled) {
-        this._pbrEnabled = !!pbrEnabled;
-        this.glRedraw();
-    }
-
-    /**
-     * Gets whether physically-based rendering is enabled.
-     *
-     * Default is ````false````.
-     *
-     * @returns {Boolean} True if quality rendering is enabled.
-     */
-    get pbrEnabled() {
-        return this._pbrEnabled;
-    }
-
-    /**
      * Sets whether basic color texture rendering is enabled.
      *
      * Default is ````true````.
@@ -1340,7 +817,6 @@ class Scene extends Component {
                 this._compilables[id].compile();
             }
         }
-        this._renderer.shadowsDirty();
         this.fire("compile", this, true);
     }
 
