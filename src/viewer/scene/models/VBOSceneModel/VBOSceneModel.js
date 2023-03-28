@@ -1065,7 +1065,6 @@ class VBOSceneModel extends Component {
             texture.setImage(image, {minFilter, magFilter, wrapS, wrapT, wrapR, flipY: cfg.flipY, encoding});
 
         } else if (cfg.src) {
-            const ext = cfg.src.split('.').pop();
             const image = new Image();
             image.onload = () => {
                 texture.setImage(image, {
