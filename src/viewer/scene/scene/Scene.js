@@ -12,7 +12,6 @@ import {AmbientLight} from '../lights/AmbientLight.js';
 import {PhongMaterial} from '../materials/PhongMaterial.js';
 import {EmphasisMaterial} from '../materials/EmphasisMaterial.js';
 import {EdgeMaterial} from '../materials/EdgeMaterial.js';
-import {Metrics} from "../metriqs/Metriqs.js";
 
 // Enables runtime check for redundant calls to object state update methods, eg. Scene#_objectVisibilityUpdated
 const ASSERT_OBJECT_STATE_UPDATE = false;
@@ -278,19 +277,6 @@ class Scene extends Component {
             dontClear: true, // Never destroy this component with Scene#clear();
             element: this.canvas.canvas,
             keyboardEventsElement: cfg.keyboardEventsElement
-        });
-
-        /**
-         * Configures this Scene's units of measurement and coordinate mapping between Real-space and World-space 3D coordinate systems.
-         *
-         * @property metrics
-         * @type {Metrics}
-         * @final
-         */
-        this.metrics = new Metrics(this, {
-            units: cfg.units,
-            scale: cfg.scale,
-            origin: cfg.origin
         });
 
         this.ticksPerRender = cfg.ticksPerRender;
